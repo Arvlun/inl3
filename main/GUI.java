@@ -388,7 +388,7 @@ public class GUI extends JFrame {
 				JPanel tablePanel = new JPanel();
 				tablePanel.setLayout(new BorderLayout());
 				JScrollPane scrollSearch = new JScrollPane(tablePanel);
-				scrollSearch.setPreferredSize(new Dimension(1300,100));
+				scrollSearch.setPreferredSize(new Dimension(1175,100));
 				
 				GridBagConstraints g = new GridBagConstraints();
 				g.gridx = 0; g.gridy = 2;
@@ -526,9 +526,9 @@ public class GUI extends JFrame {
 					return false;
 				}
 		};
-		tb.setFillsViewportHeight(true);
+		//tb.setFillsViewportHeight(true);
 		p2.setLayout(new BorderLayout());
-		sp.setPreferredSize(new Dimension(1300,800));
+		sp.setPreferredSize(new Dimension(1175,700));
 
 		p3.add(sp, BorderLayout.CENTER);
 
@@ -639,7 +639,7 @@ public class GUI extends JFrame {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 		}
 
-		setPreferredSize(new Dimension(1470,850));
+		setPreferredSize(new Dimension(1350,750));
 		setTitle("Clubregister");
 		setVisible(true);
 		pack();
@@ -678,7 +678,7 @@ public class GUI extends JFrame {
 		tchildren.setToolTipText("Children are added by member Id, separated by space");
 
 		//childPanel.setLayout(new GridBagLayout());
-		addMem.setPreferredSize(new Dimension(1300, 800)); 
+		addMem.setPreferredSize(new Dimension(1175, 700)); 
 		GridBagLayout gb = new GridBagLayout();
 		addMem.setLayout(gb);
 		GridBagConstraints g5 = new GridBagConstraints();
@@ -778,7 +778,7 @@ public class GUI extends JFrame {
 
 		updateEmailField.setText("");
 
-		searchMem.setPreferredSize(new Dimension(1300, 800)); 
+		searchMem.setPreferredSize(new Dimension(1175, 700)); 
 		GridBagLayout sgb = new GridBagLayout();
 		searchMem.setLayout(sgb);
 		GridBagConstraints g7 = new GridBagConstraints();

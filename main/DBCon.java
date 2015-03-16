@@ -102,7 +102,7 @@ public class DBCon {
 
 		try {
 			// se över så att detta gör vad jag tänkt, altså joinar alla 3 tabeller på ett logiskt sätt
-			res = state.executeQuery("SELECT * FROM (funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid");
+			res = state.executeQuery("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM (funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid");
 		} catch (SQLException se) {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 			System.out.println("executeQuery fel");
@@ -286,7 +286,7 @@ public class DBCon {
 	public ResultSet searchMember(int id) {
 		res = null;
 		try {
-		String search = String.format("SELECT * FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where medlem.id = \"%d\"", id);
+		String search = String.format("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where medlem.id = \"%d\"", id);
 		res = state.executeQuery(search);
 		} catch (SQLException se) {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
@@ -301,10 +301,10 @@ public class DBCon {
 		res = null;
 		try {
 		if (type == 0) {
-			String search = String.format("SELECT * FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where medlem.familyName = \"%s\"", searchFor);
+			String search = String.format("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where medlem.familyName = \"%s\"", searchFor);
 			res = state.executeQuery(search);
 		} else if (type == 1) {
-			String search = String.format("SELECT * FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where funktion.team = \"%s\" and funktion.role = 1", searchFor);
+			String search = String.format("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where funktion.team = \"%s\" and funktion.role = 1", searchFor);
 			res = state.executeQuery(search);
 		} else {
 			System.out.println("Search member(2parameters) fel typ");
