@@ -20,9 +20,10 @@ public class SQLtest {
 		System.out.println(spel);
 	
 		String searchFor = "hej";
+		String teamQuery = String.format("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid order by medlem.id) where funktion.team = \"%s\" order by medlem.id", searchFor);
 		String search = String.format("SELECT * FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where medlem.familyName = \"%s\"", searchFor);
 		String nr = "2";
-		System.out.println(search);
+		System.out.println(teamQuery);
 		int i;
 		i = Integer.parseInt(nr);
 	}

@@ -97,12 +97,19 @@ public class DBCon {
 		}
 	}
 
-	public ResultSet getMembers() {
+	public ResultSet getMembers(int orderBy) {
 		res = null;
 
 		try {
-			// se över så att detta gör vad jag tänkt, altså joinar alla 3 tabeller på ett logiskt sätt
-			res = state.executeQuery("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM (funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid");
+			if (orderBy == 0) { // orders by ID
+				res = state.executeQuery("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM (funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid order by medlem.id");
+				//System.out.println("trying to order by id");
+			} else if (orderBy == 1) { // orders by family Name
+				res = state.executeQuery("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) order by medlem.familyName");
+				//System.out.println("trying to order by family name");
+			} else {
+				System.out.println("Wrong int passed into getMembers somehow");
+			}
 		} catch (SQLException se) {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 			System.out.println("executeQuery fel");
@@ -112,6 +119,24 @@ public class DBCon {
 
 		return res;
 	}
+
+	public ResultSet getTeam(String team) {
+		res = null;
+
+		try {	
+			String teamQuery = String.format("SELECT medlem.id, givenName, familyName, email, gender, birth, memberSince, active, role, team, cid FROM ((funktion left outer join medlem on funktion.id = medlem.id) left outer join children on medlem.id = children.pid or medlem.id = children.cid) where funktion.team = \"%s\" order by medlem.id", team);
+			res = state.executeQuery(teamQuery);
+		} catch (SQLException se) {
+			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
+			System.out.println("executeQuery fel");
+			System.out.println(se.getMessage());
+			System.exit(1);
+		}
+
+		return res;
+	}
+
+
 	// Rensa parametrar för denna så att istället för namn,email,birth etc.etc. så tar den ett Person Object.
 	public void addMember(int id, String gName, String fName, String email, String gender, String birth, String mSince, int active, ArrayList<Integer> roleList, String team, ArrayList<Integer> childList) {
 		
@@ -130,7 +155,7 @@ public class DBCon {
 					String childAdd = String.format("insert into children values (%d, %d)", id, childId);
 					state.executeUpdate(childAdd);
 				}
-			}
+			} 
 		}
 		} catch (SQLException se) {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);

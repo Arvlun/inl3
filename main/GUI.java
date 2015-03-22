@@ -24,10 +24,10 @@ import java.sql.*;
 
 public class GUI extends JFrame {
 	static DBCon dbcon = new DBCon();
-
+	private JLabel clubMenuLabel = new JLabel("CLUBMENU", SwingConstants.CENTER);
 	private JTextField txt = new JTextField(10);
-	private JButton b1 = new JButton("Members");
-	private JButton b2 = new JButton("Clear");
+	private JButton b1 = new JButton("Print Members");
+	private JButton b2 = new JButton("Print Team");
 	private JButton b3 = new JButton("Add Member");
 	private JButton search = new JButton("Search");
 	private JButton save = new JButton("Save Member");
@@ -60,6 +60,7 @@ public class GUI extends JFrame {
 	private JTextField updateIdField = new JTextField(10);
 	private JTextField updateEmailField = new JTextField(10);
 	private JTextField removeIdField = new JTextField(10);
+	private JTextField printTeamField = new JTextField(10);
 	private	JLabel children = new JLabel("Children: ");
 
 	//private String[] searchOptions = {"Member ID", "Lastnamn", "Team"};
@@ -72,7 +73,14 @@ public class GUI extends JFrame {
 						 searchTeam = new JRadioButton("Team", false);
 	private ButtonGroup searchRadioButtons = new ButtonGroup();
 
+	private JLabel orderByLabel = new JLabel("Order by:");
+	private JLabel printTeamLabel = new JLabel("Print team:");
+	private JRadioButton orderId = new JRadioButton("Member ID", false),
+						 orderLastname = new JRadioButton("Lastname", false);
+	private ButtonGroup orderByRadioButtons = new ButtonGroup();
+
 	private Object radioButtonState;
+	private Object orderByRadioState;
 	private Object searchState;
 	private JCheckBox player = new JCheckBox("Player", false),
 					  coach  = new JCheckBox("Coach", false),
@@ -88,18 +96,34 @@ public class GUI extends JFrame {
 
 	private GridBagConstraints g1 = new GridBagConstraints();
 
-
+	// LISTERNER för meny knappar i menyraden
 	ActionListener li1 = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == b1) {
 				try {
-				printMembers(dbcon.getMembers());
+					if (orderByRadioState == orderId) {
+						printMembers(dbcon.getMembers(0)); // ID
+					} else if (orderByRadioState == orderLastname) {
+						printMembers(dbcon.getMembers(1)); // family Name
+					} else {
+						JOptionPane.showMessageDialog(null, "Select order.", "GENDER ERROR!", JOptionPane.ERROR_MESSAGE);
+					}
 				} catch (SQLException se) {
 					JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 				}
 			} else if (e.getSource() == b2) {
-				p3.removeAll();
-				pack();
+
+				String team = printTeamField.getText();
+				if (team != null && !team.equals("")) {	
+					try {
+						printMembers(dbcon.getTeam(team));
+					} catch (SQLException se) {
+						JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
+					}
+				} else {
+					JOptionPane.showMessageDialog(null, "A team has to be specified", "ERROR!", JOptionPane.ERROR_MESSAGE);
+				}
+
 			} else if (e.getSource() == search) {
 				searchMemberPanel();
 				clearRoles();
@@ -111,6 +135,7 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// LISTERner för knapparna i addmember - Add, clear, back.
 	ActionListener li3 = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 
@@ -119,7 +144,18 @@ public class GUI extends JFrame {
 				String fnamn = tfnamn.getText();
 				String lnamn = tenamn.getText();
 				String team = tlag.getText();
+				String birth = tbirth.getText();
+				String memberSince = tmemberSince.getText();
+				String email = temail.getText();
 				int active = 1; // kanske lägga till så man kan lägga till en oaktiv medlem?
+
+				// kollar så fälten into är tomma
+				boolean filledFields = true;
+				if (fnamn.equals("") || lnamn.equals("") || team.equals("") || birth.equals("") || memberSince.equals("") || email.equals("@")) {
+					filledFields = false;
+					JOptionPane.showMessageDialog(null, "All textfields has to be filled.", "FORM ERROR!", JOptionPane.ERROR_MESSAGE);
+				}
+				//
 
 				// id checks
 				int id = 0;
@@ -128,6 +164,7 @@ public class GUI extends JFrame {
 				} catch (NumberFormatException ne) {
 					JOptionPane.showMessageDialog(null, "Id has to be an integer.", "ID ERROR!", JOptionPane.ERROR_MESSAGE);
 				}
+
 				boolean idCheck = dbcon.checkMemberId(id); // true om medlem id finns
 				if (idCheck) {
 					JOptionPane.showMessageDialog(null, "Member id already used.", "ID ERROR!", JOptionPane.ERROR_MESSAGE);
@@ -135,16 +172,13 @@ public class GUI extends JFrame {
 				// end id checks
 
 				// emails checks
-				String email = null;
-				if (temail.getText().indexOf("@") < 0) {
+				if (email.indexOf("@") < 0) {
 					JOptionPane.showMessageDialog(null, "Email has to be an email (Ex: xxxxxx@something.com).", "EMAIL ERROR!", JOptionPane.ERROR_MESSAGE);
-				} else {
-					email = temail.getText();
-				}
+					filledFields = false;
+				} 
 				// end emailchecks
 
-				String birth = tbirth.getText();
-				String memberSince = tmemberSince.getText();
+
 
 				// gender checks
 				String gender = null;
@@ -157,7 +191,7 @@ public class GUI extends JFrame {
 				}
 				// endgender checks
 
-				// rolelist check, tagit från variable i klasen, satt från en annan listener
+				// rolelist check, tagit från variable i klassen, satt från en annan listener
 				if (roleList.isEmpty()){
 					JOptionPane.showMessageDialog(null, "Select atleast one role.", "ROLE ERROR!", JOptionPane.ERROR_MESSAGE);					
 				}
@@ -165,7 +199,6 @@ public class GUI extends JFrame {
 
 				// children/parent check
 				boolean cField = true;
-				boolean chNotParent = true;
 				ArrayList<Integer> childList = new ArrayList<Integer>();
 				if (parent.isSelected()) {
 					String childString = tchildren.getText();
@@ -194,31 +227,49 @@ public class GUI extends JFrame {
 
 					if (testChild(childList, id)) {
 						JOptionPane.showMessageDialog(null, "You cannot be your own child.", "ROLE ERROR!", JOptionPane.ERROR_MESSAGE);
-						chNotParent = false;
+						cField = false;
 					}
-					// parent/children check
-				}
+
+					for (Integer cid : childList) {
+						if (!dbcon.checkMemberId(cid)) {
+							cField = false;
+							String childIdError = "There's no child with ID: " + cid + ".";
+							JOptionPane.showMessageDialog(null, childIdError, "ROLE ERROR!", JOptionPane.ERROR_MESSAGE);
+							System.out.println(childList);
+						}
+					}
 				
-
-			
-
+					
+				}
+				// parent/childs checks ends
 
 				// checks igen, lägger sedan till
-				if (email != null && !email.equals("") && gender != null && id != 0 && !roleList.isEmpty() && cField && chNotParent && !idCheck) {
-
-					//addMember(int id, String gName, String fName, String email, String gender,
-					//	  String birth, String mSince, int active, ArrayList<Integer> roleList, String team, ArrayList<Integer> childList)
-
+				if (gender != null && id != 0 && !roleList.isEmpty() && cField && !idCheck && filledFields) {
 					dbcon.addMember(id, fnamn, lnamn, email, gender, birth, memberSince, active, roleList, team, childList);
-
 					clearRoles();
+				}  else {
+					System.out.println("Medlem ej tilladg, skriver ut variabler:");
+					String testprint = String.format("fnamn: %s - lnamn: %s - email: %s -  gender: %s -  birth: %s - memberSince: %s", fnamn, lnamn, email, gender, birth, memberSince);
+					System.out.println("roleList: " + roleList);
+					System.out.println("childList: " + childList);
+					System.out.println(testprint);
+					System.out.println("idCheck: " + idCheck);
+					System.out.println("filledFields: " + filledFields);
+					System.out.println("cField: " + cField);
+
 				}
 				
 				
 			} else if (e.getSource() == back) {
 				try {
 					roleList.clear();
-					printMembers(dbcon.getMembers());
+					if (orderByRadioState == orderId) {
+						printMembers(dbcon.getMembers(0)); // ID
+					} else if (orderByRadioState == orderLastname) {
+						printMembers(dbcon.getMembers(1)); // family Name
+					} else {
+						printMembers(dbcon.getMembers(0));
+					}
 				} catch (SQLException se) {
 					JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 				}
@@ -239,6 +290,7 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// LISTENER för update knappen i search Framen
 	ActionListener memberUpdateListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 
@@ -316,6 +368,7 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// LISTENER för tabort medlem I search framen
 	ActionListener removeListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			int id = 0;
@@ -337,19 +390,28 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// Listener för man/kvinna radio buttons
 	ActionListener radioListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			radioButtonState = e.getSource();
 		}
 	};
 
+	// Listener för search by radioknapparna (id, efternamn, print coaches i ett lag)
 	ActionListener searchRadioListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			searchState = e.getSource();
 		}
 	};
 
-   	// finnish search on type
+	// Listener för order by radio knapparna i menyraden
+	ActionListener orderByRadioListener = new ActionListener() {
+		public void actionPerformed(ActionEvent e) {
+			orderByRadioState = e.getSource();
+		}
+	};
+
+   	// Listener för search knappen i search framen
 	ActionListener searchListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			//int searchType; // 0 = lastname, 1 = team;
@@ -404,6 +466,7 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// LIstener för rolecheck list... endel onödiga saker blivit klar när det inte funkade först innan jag catchade index out of bounds och resetta roleerna
 	ActionListener checkListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			GridBagConstraints cCon = new GridBagConstraints();
@@ -455,15 +518,12 @@ public class GUI extends JFrame {
 		} catch (IndexOutOfBoundsException ie) {
 			//System.out.println(ie.getMessage());
 			//System.out.println(roleList);
-			roleList.clear();
-			player.setSelected(false);
-			coach.setSelected(false);
-			parent.setSelected(false);
-
+			clearRoles();
 		}
 		}
 	};
 
+	//Listener för active status i member update.
 	ActionListener checkActiveListener = new ActionListener() {
 		public void actionPerformed(ActionEvent e) {
 			
@@ -481,6 +541,7 @@ public class GUI extends JFrame {
 		}
 	};
 
+	// clearar roleListan och role checksen - dyker upp lite varstans för att se till att arraylistan roleList stämmer med det som är i kryssat.
 	public void clearRoles() {
 		roleList.clear();
 		player.setSelected(false);
@@ -488,6 +549,7 @@ public class GUI extends JFrame {
 		parent.setSelected(false);
 	}
 
+	// testar om det id som är i skrivet som id är sammsa som något id som fyllts i om rollen förälder valts
 	private boolean testChild(ArrayList<Integer> cId, int pId) {
 
 		for (Integer childId : cId) {
@@ -498,35 +560,14 @@ public class GUI extends JFrame {
 		return false;
 	}
 
+	// printar medlemmarna från ett resultset till en tabell och skriver in det i panel p3. altså huvudrutan.
 	public void printMembers(ResultSet r) throws SQLException {
 
 		p3.removeAll();
+		p2.removeAll();
+		pack();
 
-		ResultSetMetaData mData = r.getMetaData();
-
-		Vector<String> columnNamn = new Vector<String>();
-		int columnCount = mData.getColumnCount();
-		for (int i = 1; i <= columnCount; i++) {
-			columnNamn.add(mData.getColumnName(i));
-		}
-
-
-		Vector<Vector<Object>> tData = new Vector<Vector<Object>>();
-		while (r.next()){
-			Vector<Object> rowData = new Vector<Object>();
-			for (int i = 1;i <= columnCount; i++) {
-				rowData.add(r.getObject(i));
-			}
-			tData.add(rowData);
-		}
-
-
-		JTable tb = new JTable(tData, columnNamn) {
-				public boolean isCellEditable(int rowIndex, int vColIndex) {
-					return false;
-				}
-		};
-		//tb.setFillsViewportHeight(true);
+		JTable tb = tableSearchedMembers(r);
 		p2.setLayout(new BorderLayout());
 		sp.setPreferredSize(new Dimension(1175,700));
 
@@ -539,6 +580,7 @@ public class GUI extends JFrame {
 
 	}
 
+	// gör en tabel av medlemmarna från ett resultset
 	public JTable tableSearchedMembers(ResultSet r) throws SQLException {
 
 		ResultSetMetaData mData = r.getMetaData();
@@ -554,7 +596,21 @@ public class GUI extends JFrame {
 		while (r.next()){
 			Vector<Object> rowData = new Vector<Object>();
 			for (int i = 1;i <= columnCount; i++) {
-				rowData.add(r.getObject(i));
+				if (mData.getColumnName(i).equals("role")) { // ändrar rollnr till namn istället
+					if ((Integer) r.getObject(i) == 0) {
+						rowData.add("Player");
+					} else if ((Integer) r.getObject(i) == 1) {
+						rowData.add("Coach");
+					} else if ((Integer) r.getObject(i) == 2) {
+						rowData.add("Parent");
+					} else {
+						rowData.add(r.getObject(i));
+						System.out.println("didnt work yo");
+					}
+				} else {
+					rowData.add(r.getObject(i));
+				}
+				
 			}
 			tData.add(rowData);
 		}
@@ -565,7 +621,7 @@ public class GUI extends JFrame {
 					return false;
 				}
 		};
-		tb.setFillsViewportHeight(true);
+		//tb.setFillsViewportHeight(true);
 
 		return tb;	
 
@@ -574,29 +630,81 @@ public class GUI extends JFrame {
 
 
 	public GUI() {
+		// adds into buttonsgroups så att bara ett val kan vara ifyllt samtidigt
+		updateCheckBoxes.add(active);
+		updateCheckBoxes.add(inactive);
+		radioButtons.add(man);
+		radioButtons.add(kvinna);
+		orderByRadioButtons.add(orderId);
+		orderByRadioButtons.add(orderLastname);
 
+		// role Listeners for update and add member
 		player.addActionListener(checkListener);
 		coach.addActionListener(checkListener);
 		parent.addActionListener(checkListener);
+
+		// radio listeners for gender
+		man.addActionListener(radioListener);
+		kvinna.addActionListener(radioListener);
+
+		// listeners for update active radio
 		active.addActionListener(checkActiveListener);
 		inactive.addActionListener(checkActiveListener);
+
+		// buttonlisteners for search frame
 		updateMember.addActionListener(memberUpdateListener);
 		removeMember.addActionListener(removeListener);
-		radioButtons.add(man);
-		radioButtons.add(kvinna);
+
+		// radiolisteners for order by 
+		orderId.addActionListener(orderByRadioListener);
+		orderLastname.addActionListener(orderByRadioListener);
+
+		//radio listeners for what to search on in search panel
+		searchId.addActionListener(searchRadioListener);
+		searchLastname.addActionListener(searchRadioListener);
+		searchTeam.addActionListener(searchRadioListener);
+
+		//listerer for search button in search panel
+		searchOn.addActionListener(searchListener);
+
+		//radiolisteners for search by 
 		searchRadioButtons.add(searchId);
 		searchRadioButtons.add(searchLastname);
 		searchRadioButtons.add(searchTeam);
-		updateCheckBoxes.add(active);
-		updateCheckBoxes.add(inactive);
 
+		// Listerners for buttons in add member panel
+		save.addActionListener(li3);
+		back.addActionListener(li3);
+		fClear.addActionListener(li3);
+
+		// Listeners for mainmenu - b1 = prints all members ordered by selected radiobutton, b2 = prints all members in the teams that been typed in
+		// b3 = add member panel, search = search, update and remove memberpanel.
 		b1.addActionListener(li1);
 		b2.addActionListener(li1);
 		b3.addActionListener(li1);
 		search.addActionListener(li1);
+		
+		
+		JSeparator menuSep1 =  new JSeparator(SwingConstants.HORIZONTAL);
+		JSeparator menuSep2 =  new JSeparator(SwingConstants.HORIZONTAL);
+		JSeparator menuSep3 =  new JSeparator(SwingConstants.HORIZONTAL);
+		JSeparator menuSep4 =  new JSeparator(SwingConstants.HORIZONTAL);
+		JSeparator menuSep5 =  new JSeparator(SwingConstants.HORIZONTAL);
+		//menuSep1.setPreferredSize(new Dimension(15, 5));
+		//menuSep2.setPreferredSize(new Dimension(15, 5));
+		//menuSep3.setPreferredSize(new Dimension(15, 5));
+		menuSep1.setBackground(Color.black);
+		menuSep2.setBackground(Color.black);
+		menuSep3.setBackground(Color.black);
+		menuSep4.setBackground(Color.black);
+		menuSep5.setBackground(Color.black);
+
+
+
+		
 		childPanel.setLayout(new GridBagLayout());
 		GridBagLayout gbLayout = new GridBagLayout();
-		p1.setBackground(Color.black);
+		//p1.setBackground(Color.black);
 		p1.setLayout(new GridBagLayout());
 
 
@@ -605,27 +713,93 @@ public class GUI extends JFrame {
 		setLayout(gbLayout);
 		
 		GridBagConstraints g2 = new GridBagConstraints();
+		GridBagConstraints gSep = new GridBagConstraints();
 		g1.gridx = 0; g1.gridy = 0;
-		g1.insets = new Insets(0, 0, 0, 0);
+		g1.insets = new Insets(0, 0, 0, 8);
 		g1.fill = GridBagConstraints.BOTH;
 		add(p1, g1);
 
 		g2.gridx = 0; g2.gridy = 0;
+		g2.insets = new Insets(1, 0, 0, 0);
+		g2.fill = GridBagConstraints.HORIZONTAL;
+		g2.anchor = GridBagConstraints.CENTER;
+		p1.add(clubMenuLabel, g2);
+
+		gSep.gridx = 0; gSep.gridy = 1;
+		//gSep.anchor = GridBagConstraints.CENTER;
+		gSep.fill = GridBagConstraints.HORIZONTAL;
+		gSep.insets = new Insets(0, 0, 0, 0);
+		gSep.gridwidth = 1;
+		gSep.weightx = 1.0;
+		p1.add(menuSep4, gSep);
+
+		gSep.gridx = 0; gSep.gridy = 2;
+		//gSep.anchor = GridBagConstraints.CENTER;
+		gSep.fill = GridBagConstraints.HORIZONTAL;
+		gSep.insets = new Insets(0, 0, 0, 0);
+		gSep.gridwidth = 1;
+		gSep.weightx = 1.0;
+		p1.add(menuSep5, gSep);
+
+		g2.gridx = 0; g2.gridy = 3;
+		g2.insets = new Insets(0, 0, 0, 0);
+		g2.fill = GridBagConstraints.HORIZONTAL;
+		g2.anchor = GridBagConstraints.FIRST_LINE_START;
+		p1.add(orderByLabel, g2);
+
+		g2.gridx = 0; g2.gridy = 4;
+		p1.add(orderId, g2);
+		g2.gridx = 0; g2.gridy = 5;
+		p1.add(orderLastname, g2);
+
+		g2.gridx = 0; g2.gridy = 6;
 		g2.insets = new Insets(0, 0, 0, 0);
 		g2.fill = GridBagConstraints.HORIZONTAL;
 		g2.anchor = GridBagConstraints.FIRST_LINE_START;
 		p1.add(b1, g2);
 
-		g2.gridx = 0; g2.gridy = 1;
-		g2.fill = GridBagConstraints.HORIZONTAL;
-		p1.add(b2,  g2);
+		gSep.gridx = 0; gSep.gridy = 7;
+		//gSep.anchor = GridBagConstraints.CENTER;
+		gSep.insets = new Insets(5, 0, 0, 0);
+		gSep.fill = GridBagConstraints.BOTH;
+		gSep.anchor = GridBagConstraints.CENTER;
+		gSep.gridwidth = 1;
+		gSep.weightx = 1.0;
+		p1.add(menuSep1, gSep);
 
-		g2.gridx = 0; g2.gridy = 2;
+		g2.gridx = 0; g2.gridy = 8;
+		g2.anchor = GridBagConstraints.FIRST_LINE_START;
+		p1.add(printTeamLabel, g2);
+		g2.gridx = 0; g2.gridy = 9;
+		p1.add(printTeamField, g2);
+		g2.gridx = 0; g2.gridy = 10;
+		g2.fill = GridBagConstraints.HORIZONTAL;
+		p1.add(b2, g2);
+
+		gSep.gridx = 0; gSep.gridy = 11;
+		//gSep.anchor = GridBagConstraints.CENTER;
+		gSep.fill = GridBagConstraints.HORIZONTAL;
+		gSep.insets = new Insets(5, 0, 5, 0);
+		gSep.gridwidth = 1;
+		gSep.weightx = 1.0;
+		p1.add(menuSep2, gSep);
+
+		g2.gridx = 0; g2.gridy = 12;
+		g2.anchor = GridBagConstraints.FIRST_LINE_START;
 		g2.fill = GridBagConstraints.HORIZONTAL;
 		p1.add(b3,  g2);
 
-		g2.gridx = 0; g2.gridy = 3;
+		gSep.gridx = 0; gSep.gridy = 13;
+		//gSep.anchor = GridBagConstraints.CENTER;
+		gSep.fill = GridBagConstraints.HORIZONTAL;
+		gSep.gridwidth = 1;
+		gSep.weightx = 1.0;
+		p1.add(menuSep3, gSep);
+
+		g2.gridx = 0; g2.gridy = 14;
+		g2.anchor = GridBagConstraints.FIRST_LINE_START;
 		g2.fill = GridBagConstraints.HORIZONTAL;
+		g2.weighty = 1.0;
 		p1.add(search,  g2);
 
 		g1.gridx = 1; g1.gridy = 0;
@@ -634,7 +808,7 @@ public class GUI extends JFrame {
 
 
 		try {
-			printMembers(dbcon.getMembers());
+			printMembers(dbcon.getMembers(0));
 		} catch (SQLException se) {
 			JOptionPane.showMessageDialog(null, "Databas error", "ERROR!", JOptionPane.ERROR_MESSAGE);
 		}
@@ -646,11 +820,10 @@ public class GUI extends JFrame {
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 	}
 
+	// skapar rutan för att lägga till en medlem
 	public void addMemberPanel() {
 		p3.removeAll();
 		addMem = new JPanel();
-		man.addActionListener(radioListener);
-		kvinna.addActionListener(radioListener);
 		p3.add(addMem, BorderLayout.CENTER);
 
 		JLabel fnamn = new JLabel("Firstname: ");
@@ -665,7 +838,7 @@ public class GUI extends JFrame {
 
 		tfnamn.setText("ex: Bertil");
 		tenamn.setText("ex: Bertil");
-		tlag.setText("ex: Bertil");
+		tlag.setText("ex: P89");
 		tid.setText("ex: 123");
 		temail.setText("ex: bertil@gmail.com");
 		tbirth.setText("ex: 1999-07-06");
@@ -682,9 +855,7 @@ public class GUI extends JFrame {
 		GridBagLayout gb = new GridBagLayout();
 		addMem.setLayout(gb);
 		GridBagConstraints g5 = new GridBagConstraints();
-		save.addActionListener(li3);
-		back.addActionListener(li3);
-		fClear.addActionListener(li3);
+		
 
 		g5.insets = new Insets(0, 0, 0, 0);
 		g5.gridx = 0; g5.gridy = 0;
@@ -756,15 +927,13 @@ public class GUI extends JFrame {
 		pack();
 	}
 
+	// skapar rutan för att söka efter medlemmar
 	public void searchMemberPanel() {
 
 		p3.removeAll();
 		roleList.clear();
 		searchMem = new JPanel();
-		searchId.addActionListener(searchRadioListener);
-		searchLastname.addActionListener(searchRadioListener);
-		searchTeam.addActionListener(searchRadioListener);
-		searchOn.addActionListener(searchListener);
+		
 
 
 		p3.add(searchMem, BorderLayout.CENTER);
@@ -843,19 +1012,10 @@ public class GUI extends JFrame {
 
 		g7.gridx = 2; g7.gridy = 5;
 		searchMem.add(updateMember, g7);
-
-
-
-
-
 		pack();
 	}
 
 	public static void main(String[] args) throws Exception {
 		GUI t = new GUI();
-		//System.out.println(dbcon.getTeam(12));
-		//System.out.println(dbcon.checkParentId(10));
-		//System.out.println(dbcon.checkParentId(12));
-		//System.out.println(dbcon.checkParentId(1));
 	}
 }
